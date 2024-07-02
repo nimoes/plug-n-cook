@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plug-n-Cook</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        #ingredients-list, #generated-recipe {
+            margin-bottom: 20px;
+        }
+        .ingredient {
+            background: #f9f9f9;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 3px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .remove-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        form {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        input {
+            flex-grow: 1;
+            padding: 10px;
+            margin-right: 10px;
+        }
+        button {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Plug-n-Cook</h1>
+        
+        <h2>What's in your Fridge? (or Pantry)</h2>
+        <form id="ingredient-form">
+            <input type="text" id="ingredient-input" placeholder="Enter an ingredient" required>
+            <button type="submit">Add</button>
+        </form>
+        
+        <h2>Your Ingredients</h2>
+        <div id="ingredients-list"></div>
+        
+        <button id="generate-recipe-btn">Generate Recipe</button>
+        
+        <h2>Generated Recipe</h2>
+        <div id="generated-recipe"></div>
+    </div>
+
+    <script>
+    // Wait for the DOM to fully load before running the script
+    document.addEventListener('DOMContentLoaded', () => {
+        // Get references to important DOM elements
+        const ingredientsList = document.getElementById('ingredients-list');
+        const ingredientForm = document.getElementById('ingredient-form');
+        const ingredientInput = document.getElementById('ingredient-input');
+        const generateRecipeBtn = document.getElementById('generate-recipe-btn');
+        const generatedRecipe = document.getElementById('generated-recipe');
+
+        // Array to store the list of ingredients
+        let ingredients = [];
+
+        // Add event listener for form submission (adding a new ingredient)
+        ingredientForm.addEventListener('submit', (e) => {
+            e.preventDefault(); // Prevent the form from submitting normally
+            const ingredient = ingredientInput.value.trim(); // Get the input value and remove whitespace
+            // Check if the ingredient is not empty and not already in the list
+            if (ingredient && !ingredients.includes(ingredient)) {
+                ingredients.push(ingredient); // Add the ingredient to the array
+                updateIngredientsList(); // Update the displayed list
+                ingredientInput.value = ''; // Clear the input field
+            }
+        });
+
+        // Function to update the displayed list of ingredients
+        function updateIngredientsList() {
+            // Generate HTML for each ingredient with a remove button
+            ingredientsList.innerHTML = ingredients.map((ing, index) =>
+                `<div class="ingredient">
+                    ${ing}
+                    <button class="remove-btn" data-index="${index}">Remove</button>
+                </div>`
+            ).join('');
+
+            // Add event listeners to all remove buttons
+            document.querySelectorAll('.remove-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.getAttribute('data-index')); // Get the index of the ingredient
+                    ingredients.splice(index, 1); // Remove the ingredient from the array
+                    updateIngredientsList(); // Update the displayed list
+                });
+            });
+        }
+
+        // Add event listener for the "Generate Recipe" button
+        generateRecipeBtn.addEventListener('click', () => {
+            // Check if there are any ingredients
+            if (ingredients.length === 0) {
+                alert('Please add some ingredients first!');
+                return;
+            }
+
+            // Send a POST request to the backend to generate a recipe
+            fetch('http://localhost:8000/generate-recipe/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(ingredients), // Send the ingredients as JSON
+            })
+            .then(response => response.json()) // Parse the JSON response
+            .then(recipe => {
+                // Display the generated recipe
+                generatedRecipe.innerHTML = `
+                    <h3>${recipe.name}</h3>
+                    <h4>Ingredients:</h4>
+                    <ul>
+                        ${recipe.ingredients.map(ing => `<li>${ing.amount} ${ing.name}</li>`).join('')}
+                    </ul>
+                    <h4>Instructions:</h4>
+                    <p>${recipe.instructions}</p>
+                `;
+            })
+            .catch(error => {
+                // Handle any errors that occur during the fetch
+                console.error('Error:', error);
+                generatedRecipe.innerHTML = '<p>Error generating recipe. Please try again.</p>';
+            });
+        });
+    });
+</script>
