@@ -27,7 +27,7 @@ Using pip:
 `uvicorn app.main:app --reload -port 8888`
 
 Using poetry:
-`poetry run uvicorn app.ain:app --reload -port 8888`
+`poetry run uvicorn app.main:app --reload --port 8888`
 
 4. Serve html page
 
